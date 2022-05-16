@@ -9,7 +9,7 @@ import './interfaces/IJBFundingCycleDataSource.sol';
 import './interfaces/IJBNFTRewardDataSourceDelegate.sol';
 import './interfaces/IJBPayDelegate.sol';
 import './interfaces/IJBRedemptionDelegate.sol';
-import './interfaces/IJBToken721.sol';
+import './interfaces/IJBToken721UriResolver.sol';
 
 import './structs/JBDidPayData.sol';
 import './structs/JBDidRedeemData.sol';
@@ -48,12 +48,6 @@ contract JBNFTRewardDataSourceDelegate is
     Parent controller.
   */
   IJBController private _controller;
-
-  /**
-    @notice
-    NFT contract to mint against
-  */
-  IJBToken721 private _token;
 
   /**
     @notice
@@ -106,8 +100,7 @@ contract JBNFTRewardDataSourceDelegate is
   /**
     @param projectId JBX project id this reward is associated with.
     @param controller JBC controller.
-    @param token ERC721 token to be used as the reward
-    @param maxSupply Total number of reward tokens to distribute
+    @param maxSupply Total number of reward tokens to distribute.
     @param minContribution Minimum contribution amount to be eligible for this reward.
     @param _name The name of the token.
     @param _symbol The symbol that the token should be represented by.
@@ -118,7 +111,6 @@ contract JBNFTRewardDataSourceDelegate is
   constructor(
     uint256 projectId,
     IJBController controller,
-    IJBToken721 token,
     uint256 maxSupply,
     JBTokenAmount memory minContribution,
     string memory _name,
@@ -130,7 +122,6 @@ contract JBNFTRewardDataSourceDelegate is
     // JBX
     _projectId = projectId;
     _controller = controller;
-    _token = token;
     _maxSupply = maxSupply;
     _minContribution = minContribution;
 
