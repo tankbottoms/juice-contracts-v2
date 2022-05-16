@@ -58,6 +58,22 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
     };
   }
 
+  it(`Should mint token if meeting contribution parameters`, async function () {
+    const { jbNFTRewardDataSource, projectTerminal, beneficiary, accounts } = await setup();
+
+    expect(await jbNFTRewardDataSource.connect(projectTerminal).didPay({
+      payer: beneficiary.address,
+      projectId: PROJECT_ID,
+      currentFundingCycleConfiguration: 0,
+      amount: { token: ethToken, value: ETH_TO_PAY, decimals: 18, currency: CURRENCY_ETH },
+      projectTokenCount: 0,
+      beneficiary: beneficiary.address,
+      preferClaimedTokens: true,
+      memo: '',
+      metadata: '0x42'
+    })).to.emit(jbNFTRewardDataSource, 'Transfer').withArgs(ethers.constants.AddressZero, beneficiary.address, 0);
+  });
+
   it(`Should not mint token if not called from terminal`, async function () {
     const { jbNFTRewardDataSource, beneficiary } = await setup();
 
