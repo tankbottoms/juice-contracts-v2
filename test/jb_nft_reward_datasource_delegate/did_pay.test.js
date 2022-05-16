@@ -39,7 +39,8 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
         NFT_SYMBOL,
         NFT_URI,
         ethers.constants.AddressZero,
-        NFT_METADATA
+        NFT_METADATA,
+        ethers.constants.AddressZero,
       );
 
     return {

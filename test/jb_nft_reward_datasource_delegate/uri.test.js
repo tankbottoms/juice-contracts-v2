@@ -4,6 +4,7 @@ import { ethers } from 'hardhat';
 import { deployMockContract } from '@ethereum-waffle/mock-contract';
 
 import jbDirectory from '../../artifacts/contracts/JBDirectory.sol/JBDirectory.json';
+import jbToken721SampleUriResolver from '../../artifacts/contracts/system_tests/helpers/JBToken721SampleUriResolver.sol/JBToken721SampleUriResolver.json';
 
 describe('JBNFTRewardDataSourceDelegate::tokenUri(...),contractUri(...)', function () {
   const PROJECT_ID = 2;
@@ -38,7 +39,24 @@ describe('JBNFTRewardDataSourceDelegate::tokenUri(...),contractUri(...)', functi
         NFT_SYMBOL,
         NFT_URI,
         ethers.constants.AddressZero,
-        NFT_METADATA
+        NFT_METADATA,
+        ethers.constants.AddressZero,
+      );
+
+    const mockJbToken721SampleUriResolver = await deployMockContract(deployer, jbToken721SampleUriResolver.abi);
+    await jbNFTRewardDataSourceFactory
+      .connect(deployer)
+      .deploy(
+        PROJECT_ID,
+        mockJbDirectory.address,
+        2,
+        { token: ethToken, value: 1000000, decimals: 18, currency: CURRENCY_ETH },
+        NFT_NAME,
+        NFT_SYMBOL,
+        NFT_URI,
+        mockJbToken721SampleUriResolver.address,
+        NFT_METADATA,
+        accounts[0].address,
       );
 
     await jbNFTRewardDataSource.connect(projectTerminal).didPay({
@@ -54,6 +72,7 @@ describe('JBNFTRewardDataSourceDelegate::tokenUri(...),contractUri(...)', functi
     });
 
     return {
+      deployer,
       projectTerminal,
       owner,
       differentOwner,
@@ -76,5 +95,32 @@ describe('JBNFTRewardDataSourceDelegate::tokenUri(...),contractUri(...)', functi
     const { jbNFTRewardDataSource } = await setup();
 
     expect(await jbNFTRewardDataSource['contractURI()']()).to.equal('ipfs://metadata');
+  });
+
+  it('Set Token URI Test', async function () {
+    const { deployer, jbNFTRewardDataSource } = await setup();
+    const tokenId = 0;
+
+    await jbNFTRewardDataSource.connect(deployer).setTokenUri('ipfs://different_base/');
+    expect(await jbNFTRewardDataSource['tokenURI(uint256)'](tokenId)).to.equal('ipfs://different_base/0');
+  });
+
+  it('Set Token URI Resolver Test', async function () {
+    const { deployer, jbNFTRewardDataSource } = await setup();
+    const tokenId = 0;
+
+    const mockJbToken721SampleUriResolver = await deployMockContract(deployer, jbToken721SampleUriResolver.abi);
+    await mockJbToken721SampleUriResolver.mock.tokenURI.returns('ipfs://different_hash');
+
+    await jbNFTRewardDataSource.connect(deployer).connect(deployer).setTokenUriResolver(mockJbToken721SampleUriResolver.address);
+    expect(await jbNFTRewardDataSource['tokenURI(uint256)'](tokenId)).to.equal('ipfs://different_hash');
+  });
+
+
+  it('Set Contract URI Test', async function () {
+    const { deployer, jbNFTRewardDataSource } = await setup();
+
+    await jbNFTRewardDataSource.connect(deployer).setContractUri('ipfs://different_metadata')
+    expect(await jbNFTRewardDataSource['contractURI()']()).to.equal('ipfs://different_metadata');
   });
 });
