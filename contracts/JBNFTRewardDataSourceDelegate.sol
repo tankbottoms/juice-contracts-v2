@@ -4,7 +4,7 @@ pragma solidity 0.8.6;
 import '@openzeppelin/contracts/utils/Strings.sol';
 import {ERC721 as ERC721Rari} from '@rari-capital/solmate/src/tokens/ERC721.sol';
 
-import './interfaces/IJBController/1.sol';
+import './interfaces/IJBDirectory.sol';
 import './interfaces/IJBFundingCycleDataSource.sol';
 import './interfaces/IJBNFTRewardDataSourceDelegate.sol';
 import './interfaces/IJBPayDelegate.sol';
@@ -47,7 +47,7 @@ contract JBNFTRewardDataSourceDelegate is
     @notice
     Parent controller.
   */
-  IJBController private _controller;
+  IJBDirectory private _directory;
 
   /**
     @notice
@@ -99,7 +99,7 @@ contract JBNFTRewardDataSourceDelegate is
 
   /**
     @param projectId JBX project id this reward is associated with.
-    @param controller JBC controller.
+    @param directory JBX directory.
     @param maxSupply Total number of reward tokens to distribute.
     @param minContribution Minimum contribution amount to be eligible for this reward.
     @param _name The name of the token.
@@ -110,7 +110,7 @@ contract JBNFTRewardDataSourceDelegate is
   */
   constructor(
     uint256 projectId,
-    IJBController controller,
+    IJBDirectory directory,
     uint256 maxSupply,
     JBTokenAmount memory minContribution,
     string memory _name,
@@ -121,7 +121,7 @@ contract JBNFTRewardDataSourceDelegate is
   ) ERC721Rari(_name, _symbol) {
     // JBX
     _projectId = projectId;
-    _controller = controller;
+    _directory = directory;
     _maxSupply = maxSupply;
     _minContribution = minContribution;
 
@@ -166,7 +166,7 @@ contract JBNFTRewardDataSourceDelegate is
   //*********************************************************************//
 
   function didPay(JBDidPayData calldata _data) external override {
-    if (!_controller.directory().isTerminalOf(_projectId, IJBPaymentTerminal(msg.sender))) {
+    if (!_directory.isTerminalOf(_projectId, IJBPaymentTerminal(msg.sender))) {
       revert INVALID_PAYMENT_EVENT();
     }
 
