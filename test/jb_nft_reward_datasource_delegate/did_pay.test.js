@@ -33,7 +33,7 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
     ]);
 
     await mockJbDirectory.mock.isTerminalOf.withArgs(PROJECT_ID, projectTerminal.address).returns(true);
-    await mockJbDirectory.mock.isTerminalOf.withArgs(PROJECT_ID, beneficiary.address).returns(true);
+    await mockJbDirectory.mock.isTerminalOf.withArgs(PROJECT_ID, beneficiary.address).returns(false);
 
     const jbNFTRewardDataSourceFactory = await ethers.getContractFactory('JBNFTRewardDataSourceDelegate', deployer);
     const jbNFTRewardDataSource = await jbNFTRewardDataSourceFactory
@@ -41,7 +41,7 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
       .deploy(
         PROJECT_ID,
         mockJbDirectory.address,
-        2,
+        1,
         { token: ethToken, value: 1000000, decimals: 18, currency: CURRENCY_ETH },
         NFT_NAME,
         NFT_SYMBOL,
@@ -59,9 +59,9 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
   }
 
   it(`Should mint token if meeting contribution parameters`, async function () {
-    const { jbNFTRewardDataSource, projectTerminal, beneficiary, accounts } = await setup();
+    const { jbNFTRewardDataSource, projectTerminal, beneficiary } = await setup();
 
-    expect(await jbNFTRewardDataSource.connect(projectTerminal).didPay({
+    await expect(jbNFTRewardDataSource.connect(projectTerminal).didPay({
       payer: beneficiary.address,
       projectId: PROJECT_ID,
       currentFundingCycleConfiguration: 0,
@@ -74,10 +74,54 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
     })).to.emit(jbNFTRewardDataSource, 'Transfer').withArgs(ethers.constants.AddressZero, beneficiary.address, 0);
   });
 
+  it(`Should not mint token if exceeding max supply`, async function () {
+    const { jbNFTRewardDataSource, projectTerminal, beneficiary } = await setup();
+
+    await jbNFTRewardDataSource.connect(projectTerminal).didPay({
+      payer: beneficiary.address,
+      projectId: PROJECT_ID,
+      currentFundingCycleConfiguration: 0,
+      amount: { token: ethToken, value: ETH_TO_PAY, decimals: 18, currency: CURRENCY_ETH },
+      projectTokenCount: 0,
+      beneficiary: beneficiary.address,
+      preferClaimedTokens: true,
+      memo: '',
+      metadata: '0x42'
+    });
+
+    await expect(jbNFTRewardDataSource.connect(projectTerminal).didPay({
+      payer: beneficiary.address,
+      projectId: PROJECT_ID,
+      currentFundingCycleConfiguration: 0,
+      amount: { token: ethToken, value: ETH_TO_PAY, decimals: 18, currency: CURRENCY_ETH },
+      projectTokenCount: 0,
+      beneficiary: beneficiary.address,
+      preferClaimedTokens: true,
+      memo: '',
+      metadata: '0x42'
+    })).not.to.emit(jbNFTRewardDataSource, 'Transfer');
+  });
+
+  it(`Should not mint token if contribution below limit`, async function () {
+    const { jbNFTRewardDataSource, projectTerminal, beneficiary } = await setup();
+
+    await expect(jbNFTRewardDataSource.connect(projectTerminal).didPay({
+      payer: beneficiary.address,
+      projectId: PROJECT_ID,
+      currentFundingCycleConfiguration: 0,
+      amount: { token: ethToken, value: 0, decimals: 18, currency: CURRENCY_ETH },
+      projectTokenCount: 0,
+      beneficiary: beneficiary.address,
+      preferClaimedTokens: true,
+      memo: '',
+      metadata: '0x42'
+    })).not.to.emit(jbNFTRewardDataSource, 'Transfer');
+  });
+
   it(`Should not mint token if not called from terminal`, async function () {
     const { jbNFTRewardDataSource, beneficiary } = await setup();
 
-    expect(await jbNFTRewardDataSource.connect(beneficiary).didPay({
+    await expect(jbNFTRewardDataSource.connect(beneficiary).didPay({
       payer: beneficiary.address,
       projectId: PROJECT_ID,
       currentFundingCycleConfiguration: 0,
@@ -87,7 +131,8 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
       preferClaimedTokens: true,
       memo: '',
       metadata: '0x42'
-    }))
+    })).to.be.revertedWith('INVALID_PAYMENT_EVENT()');
+
   });
 
   it(`Tests for unsupported pay functions`, async function () {
