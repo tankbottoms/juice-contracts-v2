@@ -11,16 +11,8 @@ describe('JBNFTRewardDataSourceDelegate::didPay(...)', function () {
   const NFT_SYMBOL = 'RN';
   const NFT_URI = 'ipfs://content_base';
   const NFT_METADATA = 'ipfs://metadata';
-  const MEMO = 'Test Memo';
-  const AMOUNT_TO_RECEIVE = 10_000;
   const CURRENCY_ETH = 1;
   const ETH_TO_PAY = ethers.utils.parseEther('1');
-  const MIN_TOKEN_REQUESTED = 90;
-  const PREFER_CLAIMED_TOKENS = true;
-  const METADATA = '0x69';
-  const FUNDING_CYCLE_NUMBER = 0;
-  const TOKEN_RECEIVED = 100;
-  const ADJUSTED_MEMO = 'test test memo';
   const ethToken = ethers.constants.AddressZero;
 
   async function setup() {

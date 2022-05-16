@@ -4,12 +4,14 @@ import { ethers } from 'hardhat';
 import { deployMockContract } from '@ethereum-waffle/mock-contract';
 
 import jbDirectory from '../../artifacts/contracts/JBDirectory.sol/JBDirectory.json';
+import jbToken721SampleUriResolver from '../../artifacts/contracts/system_tests/helpers/JBToken721SampleUriResolver.sol/JBToken721SampleUriResolver.json';
 
-describe('JBNFTRewardDataSourceDelegate::approve(...)', function () {
+
+describe('JBNFTRewardDataSourceDelegate::tokenUri(...),contractUri(...)', function () {
   const PROJECT_ID = 2;
   const NFT_NAME = 'Reward NFT';
   const NFT_SYMBOL = 'RN';
-  const NFT_URI = 'ipfs://content_base';
+  const NFT_URI = 'ipfs://content_base/';
   const NFT_METADATA = 'ipfs://metadata';
   const CURRENCY_ETH = 1;
   const ETH_TO_PAY = ethers.utils.parseEther('1');
@@ -25,6 +27,8 @@ describe('JBNFTRewardDataSourceDelegate::approve(...)', function () {
     ]);
 
     await mockJbDirectory.mock.isTerminalOf.withArgs(PROJECT_ID, projectTerminal.address).returns(true);
+    const mockJbToken721SampleUriResolver = await deployMockContract(deployer, jbToken721SampleUriResolver.abi);
+    await mockJbToken721SampleUriResolver.mock.tokenURI.returns('ipfs://some_hash');
 
     const jbNFTRewardDataSourceFactory = await ethers.getContractFactory('JBNFTRewardDataSourceDelegate', deployer);
     const jbNFTRewardDataSource = await jbNFTRewardDataSourceFactory
@@ -37,7 +41,7 @@ describe('JBNFTRewardDataSourceDelegate::approve(...)', function () {
         NFT_NAME,
         NFT_SYMBOL,
         NFT_URI,
-        ethers.constants.AddressZero,
+        mockJbToken721SampleUriResolver.address,
         NFT_METADATA
       );
 
@@ -53,18 +57,6 @@ describe('JBNFTRewardDataSourceDelegate::approve(...)', function () {
       metadata: '0x42'
     });
 
-    await jbNFTRewardDataSource.connect(projectTerminal).didPay({
-      payer: differentOwner.address,
-      projectId: PROJECT_ID,
-      currentFundingCycleConfiguration: 0,
-      amount: { token: ethToken, value: ETH_TO_PAY, decimals: 18, currency: CURRENCY_ETH },
-      projectTokenCount: 0,
-      beneficiary: differentOwner.address,
-      preferClaimedTokens: true,
-      memo: '',
-      metadata: '0x42'
-    });
-
     return {
       projectTerminal,
       owner,
@@ -75,11 +67,10 @@ describe('JBNFTRewardDataSourceDelegate::approve(...)', function () {
     };
   }
 
-  it('Should approve and emit event if caller is owner', async function () {
-    const { jbNFTRewardDataSource, owner, notOwner } = await setup();
+  it('Token URI Resolver Test', async function () {
+    const { jbNFTRewardDataSource } = await setup();
     const tokenId = 0;
 
-    const approveTx = await jbNFTRewardDataSource.connect(owner)['approve(uint256,address,uint256)'](PROJECT_ID, notOwner.address, tokenId);
-    await expect(approveTx).to.emit(jbNFTRewardDataSource, 'Approval').withArgs(owner.address, notOwner.address, tokenId);
+    expect(await jbNFTRewardDataSource['tokenURI(uint256)'](tokenId)).to.equal('ipfs://some_hash');
   });
 });
