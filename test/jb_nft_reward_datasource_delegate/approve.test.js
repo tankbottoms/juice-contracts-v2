@@ -5,7 +5,7 @@ import { deployMockContract } from '@ethereum-waffle/mock-contract';
 
 import jbDirectory from '../../artifacts/contracts/JBDirectory.sol/JBDirectory.json';
 
-describe('JBNFTRewardDataSourceDelegate::transfer(...)', function () {
+describe('JBNFTRewardDataSourceDelegate::approve(...)', function () {
   const PROJECT_ID = 2;
   const NFT_NAME = 'Reward NFT';
   const NFT_SYMBOL = 'RN';
@@ -83,50 +83,11 @@ describe('JBNFTRewardDataSourceDelegate::transfer(...)', function () {
     };
   }
 
-  it('Should transfer token and emit event if caller is owner', async function () {
+  it('Should approve and emit event if caller is owner', async function () {
     const { jbNFTRewardDataSource, owner, notOwner } = await setup();
     const tokenId = 0;
 
-    const transferTx = await jbNFTRewardDataSource
-      .connect(owner)
-    ['transfer(uint256,address,uint256)'](PROJECT_ID, notOwner.address, tokenId);
-
-    await expect(transferTx)
-      .to.emit(jbNFTRewardDataSource, 'Transfer')
-      .withArgs(owner.address, notOwner.address, tokenId);
-
-    const balance = await jbNFTRewardDataSource['ownerBalance(address)'](owner.address);
-    expect(balance).to.equal(0);
-
-    expect(await jbNFTRewardDataSource['ownerBalance(address)'](notOwner.address)).to.equal(1);
-    expect(await jbNFTRewardDataSource['isOwner(address,uint256)'](notOwner.address, tokenId)).to.equal(true);
-
-    await expect(await jbNFTRewardDataSource.connect(notOwner)['transferFrom(uint256,address,address,uint256)'](PROJECT_ID, notOwner.address, owner.address, tokenId))
-      .to.emit(jbNFTRewardDataSource, 'Transfer')
-      .withArgs(notOwner.address, owner.address, tokenId);
-  });
-
-  it(`Can't transfer to zero address`, async function () {
-    const { jbNFTRewardDataSource, owner } = await setup();
-    const tokenId = 0;
-
-    await expect(
-      jbNFTRewardDataSource
-        .connect(owner)
-      ['transfer(uint256,address,uint256)'](PROJECT_ID, ethers.constants.AddressZero, tokenId),
-    ).to.be.revertedWith('INVALID_RECIPIENT');
-
-    await expect(jbNFTRewardDataSource.ownerBalance(ethers.constants.AddressZero)).to.be.revertedWith('INVALID_ADDRESS');
-  });
-
-  it(`Can't transfer tokens that aren't owned`, async function () {
-    const { jbNFTRewardDataSource, owner, notOwner } = await setup();
-    const tokenId = 1;
-
-    await expect(
-      jbNFTRewardDataSource
-        .connect(owner)
-      ['transfer(uint256,address,uint256)'](PROJECT_ID, notOwner.address, tokenId),
-    ).to.be.revertedWith('WRONG_FROM');
+    const approveTx = await jbNFTRewardDataSource.connect(owner)['approve(uint256,address,uint256)'](PROJECT_ID, notOwner.address, tokenId);
+    await expect(approveTx).to.emit(jbNFTRewardDataSource, 'Approval').withArgs(owner.address, notOwner.address, tokenId);
   });
 });
