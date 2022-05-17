@@ -7,7 +7,7 @@ import jbDirectory from '../../artifacts/contracts/JBDirectory.sol/JBDirectory.j
 import jbToken721SampleUriResolver from '../../artifacts/contracts/system_tests/helpers/JBToken721SampleUriResolver.sol/JBToken721SampleUriResolver.json';
 
 
-describe('JBNFTRewardDataSourceDelegate::tokenUri(...),contractUri(...)', function () {
+describe('JBNFTRewardDataSourceDelegate::tokenUri(...)', function () {
   const PROJECT_ID = 2;
   const NFT_NAME = 'Reward NFT';
   const NFT_SYMBOL = 'RN';

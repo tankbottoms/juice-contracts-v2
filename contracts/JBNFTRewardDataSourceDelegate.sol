@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
 
+import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
 import {ERC721 as ERC721Rari} from '@rari-capital/solmate/src/tokens/ERC721.sol';
 
@@ -18,6 +19,7 @@ import './structs/JBTokenAmount.sol';
 
 contract JBNFTRewardDataSourceDelegate is
   ERC721Rari,
+  Ownable,
   IJBNFTRewardDataSourceDelegate,
   IJBFundingCycleDataSource,
   IJBPayDelegate,
@@ -32,6 +34,7 @@ contract JBNFTRewardDataSourceDelegate is
   error INCORRECT_OWNER();
   error INVALID_ADDRESS();
   error INVALID_TOKEN();
+  error SUPPLY_EXHAUSTED();
 
   //*********************************************************************//
   // -------------------------- constructor ---------------------------- //
@@ -107,6 +110,7 @@ contract JBNFTRewardDataSourceDelegate is
     @param _uri Token base URI.
     @param _tokenUriResolverAddress Custom uri resolver.
     @param _contractMetadataUri Contract metadata uri.
+    @param _admin Set an alternate owner.
   */
   constructor(
     uint256 projectId,
@@ -117,7 +121,8 @@ contract JBNFTRewardDataSourceDelegate is
     string memory _symbol,
     string memory _uri,
     IJBToken721UriResolver _tokenUriResolverAddress,
-    string memory _contractMetadataUri
+    string memory _contractMetadataUri,
+    address _admin
   ) ERC721Rari(_name, _symbol) {
     // JBX
     _projectId = projectId;
@@ -129,6 +134,10 @@ contract JBNFTRewardDataSourceDelegate is
     _baseUri = _uri;
     _tokenUriResolver = _tokenUriResolverAddress;
     _contractUri = _contractMetadataUri;
+
+    if (_admin != address(0)) {
+      _transferOwnership(_admin);
+    }
   }
 
   //*********************************************************************//
@@ -321,5 +330,61 @@ contract JBNFTRewardDataSourceDelegate is
    */
   function isOwner(address _account, uint256 _id) external view override returns (bool) {
     return ownerOf[_id] == _account;
+  }
+
+  function mint(address _account) external override onlyOwner returns (uint256 tokenId) {
+    if (_distributedSupply == _maxSupply) {
+      revert SUPPLY_EXHAUSTED();
+    }
+
+    tokenId = _nextTokenId;
+    _mint(_account, tokenId);
+
+    _supply += 1;
+    _nextTokenId += 1;
+
+    _distributedSupply++;
+  }
+
+  function burn(address _account, uint256 _tokenId) external override onlyOwner {
+    if (ownerOf[_tokenId] != _account) {
+      revert INCORRECT_OWNER();
+    }
+
+    _burn(_tokenId);
+  }
+
+  /**
+    @notice
+    Owner-only function to set a contract metadata uri to contain opensea-style metadata.
+
+    @param _contractMetadataUri New metadata uri.
+  */
+  function setContractUri(string calldata _contractMetadataUri) external override onlyOwner {
+    _contractUri = _contractMetadataUri;
+  }
+
+  /**
+    @notice
+    Owner-only function to set a new token base uri.
+
+    @param _uri New base uri.
+  */
+  function setTokenUri(string calldata _uri) external override onlyOwner {
+    _baseUri = _uri;
+  }
+
+  /**
+    @notice
+    Owner-only function to set a token uri resolver. If set to address(0), value of baseUri will be used instead.
+
+    @param _tokenUriResolverAddress New uri resolver contract.
+  */
+  function setTokenUriResolver(IJBToken721UriResolver _tokenUriResolverAddress)
+    external
+    override
+    onlyOwner
+  {
+    _tokenUriResolver = _tokenUriResolverAddress;
   }
 }
