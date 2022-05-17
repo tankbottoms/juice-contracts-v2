@@ -23,7 +23,7 @@ import './structs/JBTokenAmount.sol';
 
   @dev
   Adheres to -
-  IJBNFTRewardDataSourceDelegate: General interface for the methods in this contract to react to treasury contributions or project token redemptions..
+  IJBNFTRewardDataSourceDelegate: General interface for the methods in this contract to react to treasury contributions or project token redemptions.
 
   @dev
   Inherits from -
@@ -193,13 +193,13 @@ contract JBNFTRewardDataSourceDelegate is
       _data.amount.value >= _minContribution.value &&
       _data.amount.currency == _minContribution.currency
     ) {
-      uint256 tokenId = _nextTokenId;
-      _mint(_data.beneficiary, tokenId);
+      
+      _mint(_data.beneficiary, _nextTokenId);
 
-      _supply += 1;
-      _nextTokenId += 1;
+      ++_supply;
+      ++_nextTokenId;
 
-      _distributedSupply++;
+      ++_distributedSupply;
     }
   }
 
@@ -346,10 +346,10 @@ contract JBNFTRewardDataSourceDelegate is
     tokenId = _nextTokenId;
     _mint(_account, tokenId);
 
-    _supply += 1;
-    _nextTokenId += 1;
+    ++_supply;
+    ++_nextTokenId;
 
-    _distributedSupply++;
+    ++_distributedSupply;
   }
 
   /**
