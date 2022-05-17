@@ -17,6 +17,23 @@ import './structs/JBDidRedeemData.sol';
 import './structs/JBRedeemParamsData.sol';
 import './structs/JBTokenAmount.sol';
 
+/**
+  @notice
+  Manages a project's non-fungible reward's token (NFTs) to contributors by a contribution or distribution supply amount.
+
+  @dev
+  Adheres to -
+  IJBNFTRewardDataSourceDelegate: General interface for the methods in this contract to react to treasury contributions or project token redemptions..
+
+  @dev
+  Inherits from -
+  ERC721Rari: General token standard for non-fungible token accounting and creating.
+  Ownable: Includes convenience functionality for checking a message sender's permissions before executing certain transactions.
+  IJBNFTRewardDataSourceDelegate: General interface for the methods in this contract that interact with the JBNFTRewardDataSource.
+  IJBFundingCycleDataSource: General interface for the methods in this contract to interact with JBPayParamsData and JBRedeemParamsData.
+  IJBPayDelegate: General interface for the methods in this contract that interact with JBDidPayData.
+  IJBRedemptionDelegate: General interface for the methods in this contract that interact with JBDidRedeemData.
+*/
 contract JBNFTRewardDataSourceDelegate is
   ERC721Rari,
   Ownable,
@@ -96,7 +113,7 @@ contract JBNFTRewardDataSourceDelegate is
 
   /**
     @notice
-    Contract opensea-style metadata uri.
+    Contract Opensea-style metadata uri.  Learn more https://bit.ly/3NnBa9v.
   */
   string private _contractUri;
 
@@ -109,7 +126,7 @@ contract JBNFTRewardDataSourceDelegate is
     @param _symbol The symbol that the token should be represented by.
     @param _uri Token base URI.
     @param _tokenUriResolverAddress Custom uri resolver.
-    @param _contractMetadataUri Contract metadata uri.
+    @param _contractMetadataUri Opensea-style contract metadata uri. 
     @param _admin Set an alternate owner.
   */
   constructor(
@@ -135,24 +152,18 @@ contract JBNFTRewardDataSourceDelegate is
     _tokenUriResolver = _tokenUriResolverAddress;
     _contractUri = _contractMetadataUri;
 
-    if (_admin != address(0)) {
-      _transferOwnership(_admin);
-    }
+    if (_admin != address(0)) _transferOwnership(_admin);
   }
 
   //*********************************************************************//
   // ------------------- IJBFundingCycleDataSource --------------------- //
   //*********************************************************************//
 
-  function payParams(JBPayParamsData calldata _data)
-    external
-    view
-    override
-    returns (
-      uint256 weight,
-      string memory memo,
-      IJBPayDelegate delegate
-    )
+  function payParams(JBPayParamsData calldata _data) 
+    external 
+    view 
+    override 
+    returns (uint256 weight, string memory memo, IJBPayDelegate delegate) 
   {
     return (0, _data.memo, IJBPayDelegate(address(this)));
   }
@@ -161,11 +172,7 @@ contract JBNFTRewardDataSourceDelegate is
     external
     pure
     override
-    returns (
-      uint256 reclaimAmount,
-      string memory memo,
-      IJBRedemptionDelegate delegate
-    )
+    returns (uint256 reclaimAmount, string memory memo, IJBRedemptionDelegate delegate)
   {
     return (0, _data.memo, IJBRedemptionDelegate(address(0)));
   }
@@ -174,14 +181,13 @@ contract JBNFTRewardDataSourceDelegate is
   // ------------------------ IJBPayDelegate --------------------------- //
   //*********************************************************************//
 
-  function didPay(JBDidPayData calldata _data) external override {
-    if (!_directory.isTerminalOf(_projectId, IJBPaymentTerminal(msg.sender))) {
-      revert INVALID_PAYMENT_EVENT();
-    }
+  function didPay(JBDidPayData calldata _data) 
+    external 
+    override 
+  {
+    if (!_directory.isTerminalOf(_projectId, IJBPaymentTerminal(msg.sender))) revert INVALID_PAYMENT_EVENT();
 
-    if (_distributedSupply == _maxSupply) {
-      return;
-    }
+    if (_distributedSupply == _maxSupply) return;    
 
     if (
       _data.amount.value >= _minContribution.value &&
@@ -243,20 +249,16 @@ contract JBNFTRewardDataSourceDelegate is
     Returns the full URI for the asset.
   */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    if (ownerOf[tokenId] == address(0)) {
-      revert INVALID_TOKEN();
-    }
+    if (ownerOf[tokenId] == address(0)) revert INVALID_TOKEN();
 
-    if (address(_tokenUriResolver) != address(0)) {
-      return _tokenUriResolver.tokenURI(tokenId);
-    }
+    if (address(_tokenUriResolver) != address(0)) return _tokenUriResolver.tokenURI(tokenId);
 
     return bytes(_baseUri).length > 0 ? string(abi.encodePacked(_baseUri, tokenId.toString())) : '';
   }
 
   /**
     @notice
-    Returns the contract metadata uri.
+    Returns the Opensea-style contract metadata uri. Learn more https://bit.ly/3NnBa9v.
   */
   function contractURI() public view override returns (string memory contractUri) {
     contractUri = _contractUri;
@@ -274,7 +276,8 @@ contract JBNFTRewardDataSourceDelegate is
     uint256,
     address _spender,
     uint256 _id
-  ) external override {
+    ) external override 
+  {
     approve(_spender, _id);
   }
 
@@ -290,7 +293,8 @@ contract JBNFTRewardDataSourceDelegate is
     uint256,
     address _to,
     uint256 _id
-  ) external override {
+    ) external override 
+  {
     transferFrom(msg.sender, _to, _id);
   }
 
@@ -308,7 +312,8 @@ contract JBNFTRewardDataSourceDelegate is
     address _from,
     address _to,
     uint256 _id
-  ) external override {
+    ) external override 
+  {
     transferFrom(_from, _to, _id);
   }
 
@@ -316,10 +321,13 @@ contract JBNFTRewardDataSourceDelegate is
     @notice
     Returns the number of tokens held by the given address.
    */
-  function ownerBalance(address _account) external view override returns (uint256) {
-    if (_account == address(0)) {
-      revert INVALID_ADDRESS();
-    }
+  function ownerBalance(address _account) 
+    external 
+    view 
+    override 
+    returns (uint256) 
+  {
+    if (_account == address(0)) revert INVALID_ADDRESS();
 
     return balanceOf[_account];
   }
@@ -333,9 +341,7 @@ contract JBNFTRewardDataSourceDelegate is
   }
 
   function mint(address _account) external override onlyOwner returns (uint256 tokenId) {
-    if (_distributedSupply == _maxSupply) {
-      revert SUPPLY_EXHAUSTED();
-    }
+    if (_distributedSupply == _maxSupply) revert SUPPLY_EXHAUSTED();
 
     tokenId = _nextTokenId;
     _mint(_account, tokenId);
@@ -346,10 +352,15 @@ contract JBNFTRewardDataSourceDelegate is
     _distributedSupply++;
   }
 
+  /**
+    @notice
+    Owner-only function to burn an address' token.
+
+    @param _account The address which owns the token to be burned.
+    @param _tokenId The tokenId which will be burned..
+   */
   function burn(address _account, uint256 _tokenId) external override onlyOwner {
-    if (ownerOf[_tokenId] != _account) {
-      revert INCORRECT_OWNER();
-    }
+    if (ownerOf[_tokenId] != _account) revert INCORRECT_OWNER();
 
     _burn(_tokenId);
   }
